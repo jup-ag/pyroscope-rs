@@ -59,7 +59,11 @@ fn get_regs_from_context(ucontext: *mut c_void) -> Option<(UnwindRegsNative, u64
 
     let regs = unsafe { &(*ucontext).uc_mcontext.regs };
     let sp = unsafe { (*ucontext).uc_mcontext.sp };
-    Some((UnwindRegsNative::new(regs[30], sp, regs[29]), regs[30]))
+    // Changed by Jupiter: start from the interrupted pc, not the link register
+    // (x30), as the other targets in this file do. With x30, each sample in a
+    // leaf function was counted in its caller.
+    let pc = unsafe { (*ucontext).uc_mcontext.pc };
+    Some((UnwindRegsNative::new(regs[30], sp, regs[29]), pc))
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux"))]
